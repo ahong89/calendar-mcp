@@ -28,6 +28,7 @@ class OAuth:
         self.REQUIRED_SCOPES = [
             "https://www.googleapis.com/auth/userinfo.profile",
             "https://www.googleapis.com/auth/userinfo.email",
+            "https://www.googleapis.com/auth/calendar",
             "openid",
         ]
 
@@ -70,6 +71,7 @@ class OAuth:
             })
             user_resp.raise_for_status()
             user_info = user_resp.json()
+        user_info["access_token"] = access_token
         self.sessions[session_id] = user_info
         return jsonify(user_info)
     
@@ -92,3 +94,8 @@ class OAuth:
         }
         url = httpx.URL(self.AUTH_URL).copy_merge_params(auth_params)
         return url, session_id
+    
+    def get_access_token(self, session_id):
+        if session_id not in self.sessions:
+            return None
+        return self.sessions[session_id]["access_token"]
