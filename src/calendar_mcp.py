@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
+import os
+import time
 
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP
 import logging
 import httpx
 
@@ -9,17 +11,21 @@ from oauth import OAuth
 CALENDAR_API = "https://www.googleapis.com/calendar/v3"
 
 class CalendarMcp:
-    def __init__(self):
-        self.auth = OAuth()        
+    def __init__(self, auth):
+        self.auth = auth
         self.mcp = FastMCP("calendar")
 
         self.MCP_DESCRIPTION = "Generated via calendar-mcp"
 
         self.register_tools()
 
+    # For stdio mode
     def run(self):
-        self.auth.start_server()
         self.mcp.run(transport="stdio")
+
+    # For http mode
+    def get_asgi_app(self):
+        return self.mcp.http_app(path="/")
 
     def register_tools(self):
         self.get_url = self.mcp.tool()(self.get_url)
@@ -38,13 +44,12 @@ class CalendarMcp:
         """
             Purpose: Get an OAuth URL and session ID to log in to Google Calendar.
             Usage: Triggered when the user requests login (e.g., "log me into calendar") or runs a command that requires a login.
-            Instructions for the model:
-            - Provide the OAuth URL and session ID exactly as given. Do not modify them. ENSURE it is the same
-            - Do not attempt to verify login or make any tool calls.
-            - Do not generate new URLs or provide additional instructions unless the user requests it.
-            - Only respond with the URL or acknowledge user input.
-            - Put the URL in the chat even if it is redundant
-            - The session ID is for internal use not for the user
+            Example message: (follow closely)
+            <message>
+                Please go to the following URL to log in: <URL HERE>
+                After you have logged in, let me know. If you do not wish to log in, please type "cancel".
+            </message>
+            Do not verify login after, this tool is terminal.
         """
         url, session_id = self.auth.get_url_and_session()
         return f"""
